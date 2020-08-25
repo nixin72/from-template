@@ -1,10 +1,16 @@
 #lang racket/base
 
 (require racket/system
-         racket/match)
+         racket/match
+         racket/path
+         racket/runtime-path)
+
+(define-runtime-path windows-script "from-template.bat")
 
 (define [clone-repo repo-name dir-name]
-  (system (string-append "bash ./from-template.sh " repo-name " " dir-name)))
+  (if (eq? (system-type 'os) 'windows)
+    (system (string-append (path->string windows-script) " " repo-name " " dir-name))
+    (system (string-append "bash ./from-template.sh " repo-name " " dir-name))))
 
 (match (current-command-line-arguments)
   [(vector repo dir)
