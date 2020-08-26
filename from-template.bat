@@ -9,6 +9,18 @@ echo %cd%
 
 call git clone "git@github.com:racket-templates/%REPO%.git" %DEST%
 
-cd "%DEST%"
+if not exist %DEST% goto :clone_failed
+
+cd %DEST%
 
 rd /s /q .git
+
+goto :exit
+
+:clone_failed
+
+echo "Cloning %REPO% failed."
+
+exit /b 1
+
+:exit
