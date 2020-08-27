@@ -1,11 +1,12 @@
 #!/bin/bash
 
 echo "$1"
-
 pwd
 
 git clone "git@github.com:racket-templates/$1.git" $2
-
-cd "$2"
-
-rm -rf .git
+if [ -d "$2" ]; then
+	cd "$2"
+	rm -rf .git
+else
+	echo "Cloning $1 failed"
+fi
