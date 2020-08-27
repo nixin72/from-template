@@ -7,7 +7,7 @@ echo %REPO%
 
 echo %cd%
 
-call git clone "git@github.com:racket-templates/%REPO%.git" %DEST%
+call git clone "https://github.com/racket-templates/%REPO%.git" %DEST%
 
 if not exist %DEST% goto :clone_failed
 
