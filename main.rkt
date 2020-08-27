@@ -7,10 +7,16 @@
 
 (define-runtime-path windows-script "from-template.bat")
 
+(define-runtime-path macosx-script "from-template-macosx.sh")
+
 (define [clone-repo repo-name dir-name]
-  (if (eq? (system-type 'os) 'windows)
-    (system (string-append (path->string windows-script) " " repo-name " " dir-name))
-    (system (string-append "bash ./from-template.sh " repo-name " " dir-name))))
+  (case (system-type 'os)
+    [(unix)
+     (system (string-append "bash ./from-template.sh " repo-name " " dir-name))]
+    [(macosx)
+     (system (string-append "bash " (path->string macosx-script) " " repo-name " " dir-name))]
+    [(windows)
+     (system (string-append (path->string windows-script) " " repo-name " " dir-name))]))
 
 (match (current-command-line-arguments)
   [(vector repo dir)
