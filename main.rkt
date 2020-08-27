@@ -7,7 +7,7 @@
 
 (define-runtime-path windows-script "from-template.bat")
 
-(define-runtime-path macosx-script "from-template-macosx.sh")
+(define-runtime-path macosx-script "from-template.sh")
 
 (define [clone-repo repo-name dir-name]
   (case (system-type 'os)
