@@ -2,7 +2,7 @@
 
 (define collection "racket-package-template")
 
-(define scribblings '(("scribblings/racket.scrbl" ())))
+(define scribblings '(("scribblings/from-template.scrbl" ())))
 
 (define deps
   (list "base"))
