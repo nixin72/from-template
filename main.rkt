@@ -27,3 +27,4 @@
    (error "Need to supply a name of a template. Checkout https://github.com/racket-templates for a list of available templates.")]
   [_ (error "Too many arguments supplied. Command should be in form `raco from-template <template-name> <dir-name>`")])
 
+(module test racket/base)
