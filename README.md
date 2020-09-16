@@ -1,6 +1,9 @@
 # from-template 
 
-Download a repo from github.com/racket-templates to use for your project. It removes the git history from the project so you get a fresh start. 
+This package `from-template` allows users to quickly set up a working template for a variety of Racket projects.
+It works by adding a new `raco` command `from-template` that downloads a repo from 
+[github.com/racket-templates](https://github.com/racket-templates) and removing the git history 
+from the project so you get a fresh start.
 
 # Install
 
@@ -11,26 +14,25 @@ so you can use `raco` and other Racket command line functions.
 raco pkg install from-template
 ```
 
-
-If the racket-templates org gets populated with enough stuff, I'll add this to the Racket packages repository.
-
 # Usage 
 ```bash
 raco from-template <template-name> <destination-dir>
 ```
 
+# Contributing to this project
 
-# Contributing 
+Contibutions to both this tool and the collection of templates is welcome.
 
 Contribute to this project by submitting a pull request or reporting an issue. Discussion on [Racket Users mailing list](https://groups.google.com/forum/#!forum/racket-users/join) ([google group](https://groups.google.com/forum/#!forum/racket-users)),
 [#racket IRC on freenode.net](https://botbot.me/freenode/racket/) or [Racket Slack](https://racket-slack.herokuapp.com/).
+
+Comtribute a new template by using the template at https://github.com/racket-templates/template-template 
 
 # License
 
 This package is free software, see [LICENSE](https://github.com/nixin72/from-template/blob/master/LICENSE) for more details.
 
 By making a contribution, you are agreeing that your contribution is licensed under the Apache 2.0 license and the MIT license.
-
 
 ## get started
 
