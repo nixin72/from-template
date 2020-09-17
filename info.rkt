@@ -13,4 +13,5 @@
         "scribble-lib"))
 
 (define raco-commands
-  '(("from-template" "main.rkt" "Install a repo from a template at racket-templates" 50)))
+  '(("new" "main.rkt" "Install a repo from a template at racket-templates" 50)
+    ("from-template" "main.rkt" "Install a repo from a template at racket-templates" 50)))
