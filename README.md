@@ -20,7 +20,7 @@ raco from-template <template-name> <destination-dir>
 ```
 OR 
 ```bash
-raco new <tempalte-name> <destination-dir>
+raco new <template-name> <destination-dir>
 ```
 
 # Contributing to this project
