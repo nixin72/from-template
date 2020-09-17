@@ -18,6 +18,10 @@ raco pkg install from-template
 ```bash
 raco from-template <template-name> <destination-dir>
 ```
+OR 
+```bash
+raco new <tempalte-name> <destination-dir>
+```
 
 # Contributing to this project
 
