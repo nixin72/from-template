@@ -54,10 +54,10 @@
 
 (define [readline-yes-or-no prompt default?]
   (let* ([default (if default? "(Y/n)" "(y/N)")]
-         [input (readline (string-append prompt default))])
+         [input (readline (string-append prompt default " "))])
     (cond [(string=? input "") default?]
-          [(string-ci=? (string-ref input 0) #\y) #t]
-          [(string-ci=? (string-ref input 0) #\n) #f]
+          [(char-ci=? (string-ref input 0) #\y) #t]
+          [(char-ci=? (string-ref input 0) #\n) #f]
           [else default?])))
 
 (define [readline-required-input prompt]
@@ -89,17 +89,20 @@
   (displayln "Press ^C at any time to quit")
   (displayln "")
 
-  (when (equal? args '())
-    (template (readline-required-input "template: "))
-    (output-dir (readline-with-default "Output dir: " (template))))
-  
+  (match args
+    [(list)
+     (template (readline-required-input "template: "))
+     (output-dir (readline-with-default "output dir: " (template)))]
+    [(list _)
+     (output-dir (readline-with-default "output dir: " (template)))]
+    [_ (void)])
+
   (version-num (readline-with-default "version: " "1.0.0"))
   (description (readline-with-default "description: " "\"\""))
   (entry-point (readline-with-default "entry point: " "main.rkt"))
   (git-repo (readline-with-default "git repository: " "\"\""))
   (when (string=? (git-repo) "")
     (git-init? (readline-yes-or-no "initialize git repo: " #t)))
-  (println (git-init?))
   (author (readline-with-default "author: " ""))
   (license (readline-with-default "license: " "MIT"))
 
@@ -114,10 +117,12 @@
      (string-append "(define authors '(" (stringify-or-empty (author)) "))")
      (string-append "(define license \"" (license) "\")")))
 
-  (when (clone-repo (template) (output-dir))
-    (write-to-info-file info-rkt)
-    (when (git-init?)
-      (system (string-append "cd " (output-dir) "; git init;")))))
+  (if (clone-repo (template) (output-dir))
+      (begin
+       (write-to-info-file info-rkt)
+       (when (git-init?)
+         (system (string-append "cd " (output-dir) "; git init;"))))
+      (error "A fatal error occured when trying to clone the repository.")))
 
 (define [to-error-or-not-to-error? error-message interactive?]
   (unless interactive?
@@ -142,8 +147,18 @@
      ;; Errors
      [(list) (to-error-or-not-to-error? too-few-arguments-error (interactive?))]
      [_ (displayln too-many-arguments-error)])
-    (if (interactive?)
-        (read-arguments-interactively args)
-        (clone-repo (template) (output-dir))))))
+    (with-handlers ([exn:break?
+                     (lambda (e)
+                       (displayln "\n\nProject creation aborted by user.")
+                       (exit))]
+                    [exn?
+                     (lambda (e)
+                       (displayln "\n\nHmm, an unexpected error has occured...")
+                       (displayln "If you'd like, we'd really appreciate it if you filed a bug report at")
+                       (displayln "https://github.com/nixin72/from-template/issues/new")
+                       (displayln "\nSorry for the inconvenience, please try again and change up your options if the problem persists."))])
+     (if (interactive?)
+         (read-arguments-interactively args)
+         (clone-repo (template) (output-dir)))))))
        
 (module test racket/base)
