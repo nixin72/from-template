@@ -30,7 +30,7 @@
 (define too-many-arguments-error
   (string-append
    "Too many arguments supplied.\n"
-   "Command should be in form `raco from-template <template-name> <dir-name>`"))
+   "Command should be in form `raco from-template [-i] <template-name> <dir-name>`"))
 
 (define [clone-repo repo-name dir-name]
   (case (system-type 'os)
@@ -126,7 +126,8 @@
 
 (define [to-error-or-not-to-error? error-message interactive?]
   (unless interactive?
-    (displayln error-message)))
+    (displayln error-message)
+    (exit)))
 
 (define cli-args
   (command-line
@@ -136,7 +137,16 @@
     "Allows you to modify the instantiated directory interactively"
     (interactive? #t)]
    #:args args
-   (begin
+   (with-handlers ([exn:break?
+                     (lambda (e)
+                       (displayln "\n\nProject creation aborted by user.")
+                       (exit))]
+                   [exn?
+                     (lambda (e)
+                       (displayln "\n\nHmm, an unexpected error has occured...")
+                       (displayln "If you'd like, we'd really appreciate it if you filed a bug report at")
+                       (displayln "https://github.com/nixin72/from-template/issues/new")
+                       (displayln "\nSorry for the inconvenience, please try again and change up your options if the problem persists."))])
     (match args
      [(list repo dir)
       (template repo)
@@ -146,19 +156,10 @@
       (output-dir repo)]
      ;; Errors
      [(list) (to-error-or-not-to-error? too-few-arguments-error (interactive?))]
-     [_ (displayln too-many-arguments-error)])
-    (with-handlers ([exn:break?
-                     (lambda (e)
-                       (displayln "\n\nProject creation aborted by user.")
-                       (exit))]
-                    [exn?
-                     (lambda (e)
-                       (displayln "\n\nHmm, an unexpected error has occured...")
-                       (displayln "If you'd like, we'd really appreciate it if you filed a bug report at")
-                       (displayln "https://github.com/nixin72/from-template/issues/new")
-                       (displayln "\nSorry for the inconvenience, please try again and change up your options if the problem persists."))])
-     (if (interactive?)
-         (read-arguments-interactively args)
-         (clone-repo (template) (output-dir)))))))
+     [_ (displayln too-many-arguments-error)
+        (exit)])
+    (if (interactive?)
+        (read-arguments-interactively args)
+        (clone-repo (template) (output-dir))))))
        
 (module test racket/base)
