@@ -3,6 +3,8 @@
 (require racket/system
          racket/match
          racket/file
+         racket/port
+         racket/list
          racket/string
          racket/cmdline
          racket/path
@@ -66,6 +68,18 @@
         (begin (println "You must provide input for this field.")
                (loop (readline prompt)))
         (string-trim input))))
+
+(define [exisiting-options-in-info-rkt]
+  (define file-path (build-path (current-directory) (output-dir) "info.rtk"))
+  (println file-path)
+  (println (file-exists? file-path))
+  (if (file-exists? file-path)
+      (for/list ([line (file->lines file-path)])
+        (define l (call-with-input-string
+                   line
+                   (lambda (in) (read in))))
+        (second l))
+      "fail"))
 
 (define [write-to-info-file info-rkt]
   (define file-path (string-append (output-dir) "/info.rkt"))
@@ -160,6 +174,7 @@
         (exit)])
     (if (interactive?)
         (read-arguments-interactively args)
-        (clone-repo (template) (output-dir))))))
+        (clone-repo (template) (output-dir)))
+    (println (exisiting-options-in-info-rkt)))))
        
 (module test racket/base)
