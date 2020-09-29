@@ -69,7 +69,7 @@
                (loop (readline prompt)))
         (string-trim input))))
 
-(define [exisiting-options-in-info-rkt]
+(define [existing-options-in-info-rkt]
   (define file-path (build-path (current-directory) (output-dir) "info.rtk"))
   (println file-path)
   (println (file-exists? file-path))
@@ -81,8 +81,21 @@
         (second l))
       "fail"))
 
+(define [diff-list list-1 list-2]
+  (set->list (set-union (list->set list-1) (list->set list-2))))
+
 (define [write-to-info-file info-rkt]
   (define file-path (string-append (output-dir) "/info.rkt"))
+  (define options-to-set (map (lambda (x) (second x)) info-rkt))
+  (define existing-info-rkt (existing-options-in-info-rkt))
+  (define existing-options (map (lambda (x) (second x)) existing-info-rkt))
+  (define options (diff-list options-to-set existing-options))
+
+  (for/set [(o options)]
+    (let ([index (index-of o)]))
+    (cond [(member o options-to-set)
+           `(define ,o)]))
+  
   (display-lines-to-file
    info-rkt
    file-path
@@ -174,7 +187,6 @@
         (exit)])
     (if (interactive?)
         (read-arguments-interactively args)
-        (clone-repo (template) (output-dir)))
-    (println (exisiting-options-in-info-rkt)))))
+        (clone-repo (template) (output-dir))))))
        
 (module test racket/base)
