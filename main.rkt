@@ -88,21 +88,19 @@
   (define options-old (map (lambda (x) (second x)) info-rkt-old))
   (define options-new (map (lambda (x) (second x)) info-rkt-new))
 
-  (println "HERE") 
-
   (display-to-file "#lang info.rkt\n"
                    file-path
                    #:exists 'replace)
   (for ([opt (list->set (append options-new options-old))])
     (let ([i1 (index-of options-old opt)]
           [i2 (index-of options-new opt)])
-      (display-to-file "\n" file-path #:exists 'append)
-      (write-to-file
-       (if i2
-           (list-ref info-rkt-new i2)
-           (list-ref info-rkt-old i1))
-       file-path
-       #:exists 'append))))
+      (with-output-to-file file-path #:exists 'append
+        (lambda ()
+          (define line (if i2
+                           (list-ref info-rkt-new i2)
+                           (list-ref info-rkt-old i1)))
+          (displayln (list 'define (second line) (format "~v" (third line)))))))))
+           
 
 (define [stringify str]
   (if (string=? str "")
@@ -139,10 +137,10 @@
   (define info-rkt
     `((define collection ,(output-dir))
       (define version ,(version-num))
-      (define pkg-desc ,(stringify (description)))
+      (define pkg-desc ,(description))
       (define entry-point ,(entry-point))
-      (define git-repository ,(stringify (git-repo)))
-      (define pkg-authors (list ,(stringify-or-empty (author))))
+      (define git-repository ,(git-repo))
+      (define pkg-authors '(,(author)))
       (define license ,(license))))
 
   (if (clone-repo (template) (output-dir))
