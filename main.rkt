@@ -73,10 +73,9 @@
 (define [existing-options-in-info-rkt]
   (define file-path (build-path (current-directory) (output-dir) "info.rkt"))
   (if (file-exists? file-path)
-      (for/list ([line (rest (file->lines file-path))])
-        (call-with-input-string
-                   line
-                   (lambda (in) (read in))))
+      (call-with-input-string
+       (string-append "(" (string-replace (file->string file-path) "#lang info" "") ")")
+       (lambda (in) (read in)))
       '()))
 
 (define [first-where predicate lst]
