@@ -5,12 +5,12 @@
 (define scribblings '(("scribblings/from-template.scrbl" ())))
 
 (define deps
-  (list "base" "readline"))
+  '("base" "readline"))
 
 (define build-deps
-  (list "racket-doc"
-        "rackunit-lib"
-        "scribble-lib"))
+  '("racket-doc"
+    "rackunit-lib"
+    "scribble-lib"))
 
 (define raco-commands
   '(("new" "main.rkt" "Install a repo from a template at racket-templates" 50)

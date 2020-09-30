@@ -87,7 +87,7 @@
   (define options-old (map (lambda (x) (second x)) info-rkt-old))
   (define options-new (map (lambda (x) (second x)) info-rkt-new))
 
-  (display-to-file "#lang info.rkt\n"
+  (display-to-file "#lang info.rkt\n\n"
                    file-path
                    #:exists 'replace)
   (for ([opt (list->set (append options-new options-old))])
@@ -98,8 +98,7 @@
           (define line (if i2
                            (list-ref info-rkt-new i2)
                            (list-ref info-rkt-old i1)))
-          (displayln (list 'define (second line) (format "~v" (third line)))))))))
-           
+          (displayln (list 'define (second line) (string-replace (format "~v" (third line)) "''" "'"))))))))
 
 (define [stringify str]
   (if (string=? str "")
