@@ -8,6 +8,7 @@
          racket/string
          racket/cmdline
          racket/path
+         racket/set
          racket/runtime-path
          readline/readline)
 
@@ -70,36 +71,38 @@
         (string-trim input))))
 
 (define [existing-options-in-info-rkt]
-  (define file-path (build-path (current-directory) (output-dir) "info.rtk"))
-  (println file-path)
-  (println (file-exists? file-path))
+  (define file-path (build-path (current-directory) (output-dir) "info.rkt"))
   (if (file-exists? file-path)
-      (for/list ([line (file->lines file-path)])
-        (define l (call-with-input-string
+      (for/list ([line (rest (file->lines file-path))])
+        (call-with-input-string
                    line
                    (lambda (in) (read in))))
-        (second l))
-      "fail"))
+      '()))
 
-(define [diff-list list-1 list-2]
-  (set->list (set-union (list->set list-1) (list->set list-2))))
+(define [first-where predicate lst]
+  (car (filter predicate lst)))
 
-(define [write-to-info-file info-rkt]
+(define [write-to-info-file info-rkt-new]
   (define file-path (string-append (output-dir) "/info.rkt"))
-  (define options-to-set (map (lambda (x) (second x)) info-rkt))
-  (define existing-info-rkt (existing-options-in-info-rkt))
-  (define existing-options (map (lambda (x) (second x)) existing-info-rkt))
-  (define options (diff-list options-to-set existing-options))
+  (define info-rkt-old (existing-options-in-info-rkt))
+  (define options-old (map (lambda (x) (second x)) info-rkt-old))
+  (define options-new (map (lambda (x) (second x)) info-rkt-new))
 
-  (for/set [(o options)]
-    (let ([index (index-of o)]))
-    (cond [(member o options-to-set)
-           `(define ,o)]))
-  
-  (display-lines-to-file
-   info-rkt
-   file-path
-   #:exists 'replace))
+  (println "HERE") 
+
+  (display-to-file "#lang info.rkt\n"
+                   file-path
+                   #:exists 'replace)
+  (for ([opt (list->set (append options-new options-old))])
+    (let ([i1 (index-of options-old opt)]
+          [i2 (index-of options-new opt)])
+      (display-to-file "\n" file-path #:exists 'append)
+      (write-to-file
+       (if i2
+           (list-ref info-rkt-new i2)
+           (list-ref info-rkt-old i1))
+       file-path
+       #:exists 'append))))
 
 (define [stringify str]
   (if (string=? str "")
@@ -134,15 +137,13 @@
   (license (readline-with-default "license: " "MIT"))
 
   (define info-rkt
-    (list
-     "#lang info"
-     (string-append "(define collection \"" (output-dir) "\")")
-     (string-append "(define version \"" (version-num) "\")")
-     (string-append "(define description " (stringify (description)) ")")
-     (string-append "(define entry-point \"" (entry-point) "\")")
-     (string-append "(define git-repository " (stringify (git-repo)) ")")
-     (string-append "(define authors '(" (stringify-or-empty (author)) "))")
-     (string-append "(define license \"" (license) "\")")))
+    `((define collection ,(output-dir))
+      (define version ,(version-num))
+      (define pkg-desc ,(stringify (description)))
+      (define entry-point ,(entry-point))
+      (define git-repository ,(stringify (git-repo)))
+      (define pkg-authors (list ,(stringify-or-empty (author))))
+      (define license ,(license))))
 
   (if (clone-repo (template) (output-dir))
       (begin
@@ -170,6 +171,7 @@
                        (exit))]
                    [exn?
                      (lambda (e)
+                       (displayln e)
                        (displayln "\n\nHmm, an unexpected error has occured...")
                        (displayln "If you'd like, we'd really appreciate it if you filed a bug report at")
                        (displayln "https://github.com/nixin72/from-template/issues/new")
