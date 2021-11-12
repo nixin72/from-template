@@ -14,6 +14,8 @@
 
 (define-runtime-path windows-script "from-template.bat")
 (define-runtime-path macosx-script "from-template.sh")
+(define-runtime-path linux-script "from-template.sh")
+
 
 (define interactive? (make-parameter #f))
 (define template (make-parameter null))
@@ -38,7 +40,7 @@
 (define [clone-repo repo-name dir-name]
   (case (system-type 'os)
     [(unix)
-     (system (string-append "bash ./from-template.sh " repo-name " " dir-name))]
+     (system (string-append "bash " (path->string linux-script) " " repo-name " " dir-name))]
     [(macosx)
      (system (string-append "bash " (path->string macosx-script) " " repo-name " " dir-name))]
     [(windows)
