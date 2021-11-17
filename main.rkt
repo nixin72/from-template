@@ -101,29 +101,31 @@
     (exit)))
 
 (define [get-template file-url]
-  (with-input-from-string
-    (bytes->string/utf-8 (response-body (get file-url)))
-    (λ ()
-      (define template (apply hash (read)))
-      (displayln
-       (string-append (bold (symbol->string (hash-ref template 'name)))
-                      (if (hash-has-key? template 'desc)
-                          (string-append "\n" (hash-ref template 'desc))
-                          ""))))))
+  (with-handlers ([exn:fail:http-easy:timeout?
+                   (λ () null)])
+    (with-input-from-string
+      (bytes->string/utf-8 (response-body (get file-url)))
+      (λ ()
+        (define template (apply hash (read)))
+        (displayln
+         (string-append (bold (symbol->string (hash-ref template 'name)))
+                        (if (hash-has-key? template 'desc)
+                            (string-append "\n" (hash-ref template 'desc))
+                            "")))))))
 
 ;; This is super naive. What should happen is that whenever a new template gets added to the
 ;; template archive the description for that template gets compiled into a big list of
 ;; templates and then this checks against that one list instead of making a bunch of different
 ;; HTTP requests to get the contents of all of these files. It's slow.
 (define [list-templates query]
-  (map (lambda (x)
-         (define file-url (hash-ref x 'download_url))
-         (cond
-           [(empty? query) (get-template file-url)]
-           [(string-contains? file-url (first query)) (get-template file-url)]
-           ))
-       (response-json
-        (get api-url))))
+  (with-handlers ([exn:fail:http-easy:timeout?
+                   (λ () (list-templates query))])
+    (map (lambda (x)
+           (define file-url (hash-ref x 'download_url))
+           (when (string-contains? file-url query)
+             (get-template file-url)))
+         (response-json
+          (get api-url)))))
 
 (define [get-template-repo template-name]
   (with-input-from-bytes
@@ -157,20 +159,22 @@
                       (displayln "https://github.com/nixin72/from-template/issues/new")
                       (displayln "\nSorry for the inconvenience, please try again and change up your options if the problem persists."))])
      (cond
-       [(listing?) (list-templates args)]
+       [(listing?) (list-templates (if (empty? args) "" (first args)))]
        [else
         (match args
           [(list repo dir)
            (template (get-template-repo repo))
-           (output-dir dir)]
+           (output-dir dir)
+           (clone-repo (template) (output-dir))]
           [(list repo)
            (template (get-template-repo repo))
-           (output-dir repo)]
+           (output-dir repo)
+           (clone-repo (template) (output-dir))]
           ;; Errors
-          [(list) (to-error-or-not-to-error? too-few-arguments-error (interactive?))]
+          [(list) (list-templates "")]
           [_ (displayln too-many-arguments-error)
              (exit)])
-        (clone-repo (template) (output-dir))
+
         ]))))
 
 (module test racket/base)
