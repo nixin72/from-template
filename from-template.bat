@@ -1,13 +1,10 @@
 @echo off
 
-set REPO=%1
-set DEST=%2
+set PROTOCOL=%1
+set REPO=%2
+set DEST=%3
 
-echo %REPO%
-
-echo %cd%
-
-call git clone "https://github.com/racket-templates/%REPO%.git" %DEST%
+call git clone "%PROTOCOL%%REPO%.git" %DEST%
 
 if not exist %DEST% goto :clone_failed
 

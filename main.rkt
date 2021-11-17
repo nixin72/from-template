@@ -26,6 +26,7 @@
 (define version-num (make-parameter "1.1.0"))
 (define description (make-parameter ""))
 (define entry-point (make-parameter "main.rkt"))
+(define ssh? (make-parameter #f))
 (define git-repo (make-parameter ""))
 (define git-init? (make-parameter #f))
 (define author (make-parameter ""))
@@ -38,19 +39,21 @@
    "Need to supply a name of a template.\n"
    "Command should be in form `raco new <template-name> [dir-name]`\n"
    "Checkout https://github.com/racket-templates for a list of available templates."))
+
 (define too-many-arguments-error
   (string-append
    "Too many arguments supplied.\n"
    "Command should be in form `raco new <template-name> [dir-name]`"))
 
 (define [clone-repo repo-name dir-name]
+  (define protocol (if ssh? "git@github.com:" "https://github.com/"))
   (case (system-type 'os)
     [(unix)
-     (system (string-append "bash " (path->string linux-script) " " repo-name " " dir-name))]
+     (system (string-append "bash " (path->string linux-script) " " protocol " " repo-name " " dir-name))]
     [(macosx)
-     (system (string-append "bash " (path->string macosx-script) " " repo-name " " dir-name))]
+     (system (string-append "bash " (path->string macosx-script) " " protocol " " repo-name " " dir-name))]
     [(windows)
-     (system (string-append (path->string windows-script) " " repo-name " " dir-name))]))
+     (system (string-append (path->string windows-script) " " protocol " " repo-name " " dir-name))]))
 
 (define [existing-options-in-info-rkt]
   (define file-path (build-path (current-directory) (output-dir) "info.rkt"))
@@ -92,8 +95,6 @@
       ""
       (string-append "\"" str "\"")))
 
-
-
 (define [to-error-or-not-to-error? error-message interactive?]
   (unless interactive?
     (displayln error-message)
@@ -124,6 +125,15 @@
        (response-json
         (get api-url))))
 
+(define [get-template-repo template-name]
+  (with-input-from-bytes
+    (response-body
+     (get (string-append
+           "https://raw.githubusercontent.com/racket-templates/racket-templates/main/templates/"
+           template-name)))
+    (λ ()
+      (hash-ref (apply hash (read)) 'repo))))
+
 (define cli-args
   (command-line
    #:program "from-template"
@@ -131,6 +141,9 @@
    [("-l" "--list")
     "Lists all available templates to clone"
     (listing? #t)]
+   [("-s" "--ssh")
+    "Clone over ssh instead of https"
+    (ssh? #t)]
    #:args args
    (with-handlers ([exn:break?
                     (lambda (e)
@@ -147,16 +160,17 @@
        [(listing?) (list-templates args)]
        [else
         (match args
-       [(list repo dir)
-        (template repo)
-        (output-dir dir)]
-       [(list repo)
-        (template repo)
-        (output-dir repo)]
-       ;; Errors
-       [(list) (to-error-or-not-to-error? too-few-arguments-error (interactive?))]
-       [_ (displayln too-many-arguments-error)
-          (exit)])
-        (clone-repo (template) (output-dir))]))))
+          [(list repo dir)
+           (template (get-template-repo repo))
+           (output-dir dir)]
+          [(list repo)
+           (template (get-template-repo repo))
+           (output-dir repo)]
+          ;; Errors
+          [(list) (to-error-or-not-to-error? too-few-arguments-error (interactive?))]
+          [_ (displayln too-many-arguments-error)
+             (exit)])
+        (clone-repo (template) (output-dir))
+        ]))))
 
 (module test racket/base)

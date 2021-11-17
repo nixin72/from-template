@@ -1,12 +1,9 @@
 #!/bin/bash
 
-echo "$1"
-pwd
-
-git clone "https://github.com/racket-templates/$1.git" $2
-if [ -d "$2" ]; then
-	cd "$2"
+git clone "$1$2.git" $3
+if [ -d "$3" ]; then
+	cd "$3"
 	rm -rf .git
 else
-	echo "Cloning $1 failed"
+	echo "Cloning $1$2 failed"
 fi
