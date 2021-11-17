@@ -5,7 +5,7 @@
 (define scribblings '(("scribblings/from-template.scrbl" ())))
 
 (define deps
-  '("base" "readline"))
+  '("base" "readline" "http-easy"))
 
 (define build-deps
   '("racket-doc"

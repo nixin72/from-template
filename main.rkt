@@ -10,23 +10,30 @@
          racket/path
          racket/set
          racket/runtime-path
-         readline/readline)
+         readline/readline
+         net/http-easy)
 
 (define-runtime-path windows-script "from-template.bat")
 (define-runtime-path macosx-script "from-template.sh")
 (define-runtime-path linux-script "from-template.sh")
 
+(define normal "\033[0m")
+(define [color color strs] (string-append color (string-join strs " ") normal))
+(define [bold . strings] (color "\033[0;1m" strings))
 
+(define listing? (make-parameter #f))
 (define interactive? (make-parameter #f))
 (define template (make-parameter null))
 (define output-dir (make-parameter null))
-(define version-num (make-parameter "1.0.0"))
+(define version-num (make-parameter "1.1.0"))
 (define description (make-parameter ""))
 (define entry-point (make-parameter "main.rkt"))
 (define git-repo (make-parameter ""))
 (define git-init? (make-parameter #f))
 (define author (make-parameter ""))
 (define license (make-parameter "MIT"))
+
+(define api-url "https://api.github.com/repos/racket-templates/racket-templates/contents/templates")
 
 (define too-few-arguments-error
   (string-append
@@ -155,38 +162,69 @@
     (displayln error-message)
     (exit)))
 
+(define [get-template file-url]
+  (with-input-from-string
+    (bytes->string/utf-8 (response-body (get file-url)))
+    (λ ()
+      (define template (apply hash (read)))
+      (displayln
+       (string-append (bold (symbol->string (hash-ref template 'name)))
+                      (if (hash-has-key? template 'desc)
+                          (string-append "\n" (hash-ref template 'desc))
+                          ""))))))
+
+;; This is super naive. What should happen is that whenever a new template gets added to the
+;; template archive the description for that template gets compiled into a big list of
+;; templates and then this checks against that one list instead of making a bunch of different
+;; HTTP requests to get the contents of all of these files. It's slow.
+(define [list-templates query]
+  (map (lambda (x)
+         (define file-url (hash-ref x 'download_url))
+         (cond
+           [(empty? query) (get-template file-url)]
+           [(string-contains? file-url (first query)) (get-template file-url)]
+           ))
+       (response-json
+        (get api-url))))
+
 (define cli-args
   (command-line
    #:program "from-template"
-   #:once-each
+   #:once-any
+   [("-l" "--list")
+    "Lists all available templates to clone"
+    (listing? #t)]
    [("-i" "--interactive")
     "Allows you to modify the instantiated directory interactively"
     (interactive? #t)]
    #:args args
    (with-handlers ([exn:break?
-                     (lambda (e)
-                       (displayln "\n\nProject creation aborted by user.")
-                       (exit))]
+                    (lambda (e)
+                      (displayln "\n\nProject creation aborted by user.")
+                      (exit))]
                    [exn?
-                     (lambda (e)
-                       (displayln e)
-                       (displayln "\n\nHmm, an unexpected error has occured...")
-                       (displayln "If you'd like, we'd really appreciate it if you filed a bug report at")
-                       (displayln "https://github.com/nixin72/from-template/issues/new")
-                       (displayln "\nSorry for the inconvenience, please try again and change up your options if the problem persists."))])
-    (match args
-     [(list repo dir)
-      (template repo)
-      (output-dir dir)]
-     [(list repo)
-      (template repo)
-      (output-dir repo)]
-     ;; Errors
-     [(list) (to-error-or-not-to-error? too-few-arguments-error (interactive?))]
-     [_ (displayln too-many-arguments-error)
-        (exit)])
-    (if (interactive?)
-        (read-arguments-interactively args)
-        (clone-repo (template) (output-dir))))))
+                    (lambda (e)
+                      (displayln e)
+                      (displayln "\n\nHmm, an unexpected error has occured...")
+                      (displayln "If you'd like, we'd really appreciate it if you filed a bug report at")
+                      (displayln "https://github.com/nixin72/from-template/issues/new")
+                      (displayln "\nSorry for the inconvenience, please try again and change up your options if the problem persists."))])
+     (cond
+       [(listing?) (list-templates args)]
+       [else
+        (match args
+          [(list repo dir)             ; clone template into to specific dir
+           (template repo)
+           (output-dir dir)]
+          [(list repo)                 ; clone template here into new dir
+           (template repo)
+           (output-dir repo)]
+          ;; Errors
+          [(list) (to-error-or-not-to-error? too-few-arguments-error (interactive?))]
+          [_ (displayln too-many-arguments-error)
+             (exit)])
+        (if (interactive?)
+         (read-arguments-interactively args)
+         (clone-repo (template) (output-dir)))]))))
        
 (module test racket/base)
