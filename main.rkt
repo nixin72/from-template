@@ -11,6 +11,10 @@
          racket/runtime-path
          net/http-easy)
 
+(provide
+ print-templates
+ list-templates)
+
 (define-runtime-path windows-script "from-template.bat")
 (define-runtime-path macosx-script "from-template.sh")
 (define-runtime-path linux-script "from-template.sh")
@@ -54,6 +58,15 @@
      (system (string-append "bash " (path->string macosx-script) " " protocol " " repo-name " " dir-name))]
     [(windows)
      (system (string-append (path->string windows-script) " " protocol " " repo-name " " dir-name))]))
+
+(define [get-template-repo template-name]
+  (with-input-from-bytes
+    (response-body
+     (get (string-append
+           "https://raw.githubusercontent.com/racket-templates/racket-templates/main/templates/"
+           template-name)))
+    (lambda ()
+      (hash-ref (apply hash (read)) 'repo))))
 
 (define [existing-options-in-info-rkt]
   (define file-path (build-path (current-directory) (output-dir) "info.rkt"))
@@ -102,16 +115,11 @@
 
 (define [get-template file-url]
   (with-handlers ([exn:fail:http-easy:timeout?
-                   (λ () null)])
+                   (lambda () null)])
     (with-input-from-string
       (bytes->string/utf-8 (response-body (get file-url)))
-      (λ ()
-        (define template (apply hash (read)))
-        (displayln
-         (string-append (bold (symbol->string (hash-ref template 'name)))
-                        (if (hash-has-key? template 'desc)
-                            (string-append "\n" (hash-ref template 'desc))
-                            "")))))))
+      (lambda () (let [(x (read))]
+                   (apply hash x))))))
 
 ;; This is super naive. What should happen is that whenever a new template gets added to the
 ;; template archive the description for that template gets compiled into a big list of
@@ -119,62 +127,60 @@
 ;; HTTP requests to get the contents of all of these files. It's slow.
 (define [list-templates query]
   (with-handlers ([exn:fail:http-easy:timeout?
-                   (λ () (list-templates query))])
-    (map (lambda (x)
-           (define file-url (hash-ref x 'download_url))
-           (when (string-contains? file-url query)
-             (get-template file-url)))
-         (response-json
-          (get api-url)))))
+                   (lambda () (list-templates query))])
+    (for/list [(x (response-json (get api-url)))]
+      (define file-url (hash-ref x 'download_url))
+      (when (string-contains? file-url query)
+        (get-template file-url)))))
 
-(define [get-template-repo template-name]
-  (with-input-from-bytes
-    (response-body
-     (get (string-append
-           "https://raw.githubusercontent.com/racket-templates/racket-templates/main/templates/"
-           template-name)))
-    (λ ()
-      (hash-ref (apply hash (read)) 'repo))))
+(define [print-templates args]
+  (for [(x (list-templates (if (empty? args) "" (first args))))]
+    (displayln
+     (string-append (bold (symbol->string (hash-ref x 'name)))
+                    (if (hash-has-key? x 'desc)
+                        (string-append " - " (hash-ref x 'desc))
+                        "")))))
 
-(define cli-args
-  (command-line
-   #:program "from-template"
-   #:once-any
-   [("-l" "--list")
-    "Lists all available templates to clone"
-    (listing? #t)]
-   [("-s" "--ssh")
-    "Clone over ssh instead of https"
-    (ssh? #t)]
-   #:args args
-   (with-handlers ([exn:break?
-                    (lambda (e)
-                      (displayln "\n\nProject creation aborted by user.")
-                      (exit))]
-                   [exn?
-                    (lambda (e)
-                      (displayln e)
-                      (displayln "\n\nHmm, an unexpected error has occured...")
-                      (displayln "If you'd like, we'd really appreciate it if you filed a bug report at")
-                      (displayln "https://github.com/nixin72/from-template/issues/new")
-                      (displayln "\nSorry for the inconvenience, please try again and change up your options if the problem persists."))])
-     (cond
-       [(listing?) (list-templates (if (empty? args) "" (first args)))]
-       [else
-        (match args
-          [(list repo dir)
-           (template (get-template-repo repo))
-           (output-dir dir)
-           (clone-repo (template) (output-dir))]
-          [(list repo)
-           (template (get-template-repo repo))
-           (output-dir repo)
-           (clone-repo (template) (output-dir))]
-          ;; Errors
-          [(list) (list-templates "")]
-          [_ (displayln too-many-arguments-error)
-             (exit)])
+(module+ main
+  (define cli-args
+    (command-line
+     #:program "from-template"
+     #:once-any
+     [("-l" "--list")
+      "Lists all available templates to clone"
+      (listing? #t)]
+     [("-s" "--ssh")
+      "Clone over ssh instead of https"
+      (ssh? #t)]
+     #:args args
+     (with-handlers ([exn:break?
+                      (lambda (e)
+                        (displayln "\n\nProject creation aborted by user.")
+                        (exit))]
+                     [exn?
+                      (lambda (e)
+                        (displayln e)
+                        (displayln "\n\nHmm, an unexpected error has occured...")
+                        (displayln "If you'd like, we'd really appreciate it if you filed a bug report at")
+                        (displayln "https://github.com/nixin72/from-template/issues/new")
+                        (displayln "\nSorry for the inconvenience, please try again and change up your options if the problem persists."))])
+       (cond
+         [(listing?) (print-templates args)]
+         [else
+          (match args
+            [(list repo dir)
+             (template (get-template-repo repo))
+             (output-dir dir)
+             (clone-repo (template) (output-dir))]
+            [(list repo)
+             (template (get-template-repo repo))
+             (output-dir repo)
+             (clone-repo (template) (output-dir))]
+            ;; Errors
+            [(list) (print-templates '())]
+            [_ (displayln too-many-arguments-error)
+               (exit)])
 
-        ]))))
+          ])))))
 
 (module test racket/base)
