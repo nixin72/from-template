@@ -25,8 +25,9 @@ raco new <template-name> <destination-dir>
 
 Contibutions to both this tool and the collection of templates is welcome.
 
-Contribute to this project by submitting a pull request or reporting an issue. Discussion on [Racket Users mailing list](https://groups.google.com/forum/#!forum/racket-users/join) ([google group](https://groups.google.com/forum/#!forum/racket-users)),
-[#racket IRC on freenode.net](https://botbot.me/freenode/racket/) or [Racket Slack](https://racket-slack.herokuapp.com/).
+Contribute to this project by submitting a pull request or reporting an issue. 
+
+Discussion on [Racket Discussions (Discourse forum/mailing list)](https://racket.discourse.group/) or [Racket Discord](https://discord.gg/6Zq8sH5).
 
 # License
 
