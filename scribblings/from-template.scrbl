@@ -28,8 +28,23 @@ Note: If you haven't already done so,
 @hyperlink["https://github.com/racket/racket/wiki/Set-your-PATH-environment-variable"]{Set
  your PATH environment variable} so you can use raco and other Racket command line functions.
 
-Type
+For a list of available templates type
+
+@tt{% raco new}
+
+Install a template by including the template name and a destination folder.
+
+@tt{% raco new <template-name> <destination-dir>}
+
+If no destination path is provided the template is installed in the current folder.
+
+@tt{% raco new <template-name>}
+
+
+The legacy command is still available;
 
 @tt{% raco from-template <template-name> <destination-dir>}
 
-from the command prompt to make a copy of the named template in the destination directory.
+
+
+
