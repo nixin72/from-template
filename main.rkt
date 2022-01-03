@@ -50,7 +50,7 @@
    "Command should be in form `raco new <template-name> [dir-name]`"))
 
 (define [clone-repo repo-name dir-name]
-  (define protocol (if ssh? "git@github.com:" "https://github.com/"))
+  (define protocol (if (ssh?) "git@github.com:" "https://github.com/"))
   (case (system-type 'os)
     [(unix)
      (system (string-append "bash " (path->string linux-script) " " protocol " " repo-name " " dir-name))]
